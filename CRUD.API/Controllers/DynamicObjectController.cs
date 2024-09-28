@@ -9,11 +9,11 @@ namespace CRUD.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DynamicCrudController : ControllerBase
+    public class DynamicObjectController : ControllerBase
     {
-        private readonly IDynamicCrudService _dynamicCrudService;
+        private readonly IDynamicObjectService _dynamicCrudService;
 
-        public DynamicCrudController(IDynamicCrudService dynamicCrudService)
+        public DynamicObjectController(IDynamicObjectService dynamicCrudService)
         {
             _dynamicCrudService = dynamicCrudService;
         }

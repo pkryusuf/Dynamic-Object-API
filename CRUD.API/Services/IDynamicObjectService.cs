@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CRUD.API.Services
 {
-    public interface IDynamicCrudService
+    public interface IDynamicObjectService
     {
         Task<object> CreateAsync(string objectType, Dictionary<string, object> fields);
 

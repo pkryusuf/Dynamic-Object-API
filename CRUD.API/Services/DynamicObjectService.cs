@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace CRUD.API.Services
 {
-    public class DynamicCrudService : IDynamicCrudService
+    public class DynamicObjectService : IDynamicObjectService
     {
         private readonly AppDbContext _context;
 
-        public DynamicCrudService(AppDbContext context)
+        public DynamicObjectService(AppDbContext context)
         {
             _context = context;
         }
@@ -25,23 +25,18 @@ namespace CRUD.API.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Validate the main object fields
                 ValidateFields(objectType, fields);
 
-                // Create the main object
                 var mainObject = CreateObjectFromFields(objectType, fields);
                 _context.Add(mainObject);
                 await _context.SaveChangesAsync();
 
-                // Retrieve the ID of the main object
                 var mainObjectId = GetObjectId(mainObject);
 
-                // Check for sub-objects and process them if present
                 if (fields.ContainsKey("SubObjects") && fields["SubObjects"] is IEnumerable<object> subObjects)
                 {
                     foreach (var subObjectDto in subObjects)
                     {
-                        // Check if the sub-object is a valid JSON object
                         if (subObjectDto is JObject subObject)
                         {
                             var subObjectType = subObject["objectType"]?.ToString();
@@ -49,10 +44,8 @@ namespace CRUD.API.Services
 
                             if (subObjectType != null && subObjectFields != null)
                             {
-                                // Validate the sub-object fields
                                 ValidateFields(subObjectType, subObjectFields);
 
-                                // Link the main object ID to the sub-object
                                 LinkParentToChild(mainObject, subObjectFields);
 
                                 var subObjectInstance = CreateObjectFromFields(subObjectType, subObjectFields);
@@ -91,7 +84,6 @@ namespace CRUD.API.Services
                 var parentIdValue = parentIdProperty.GetValue(parentObject);
                 var parentIdName = parentIdProperty.Name;
 
-                // Alt nesnenin alanları arasında ParentId alanını bul ve değerini ata
                 foreach (var key in childFields.Keys.ToList())
                 {
                     if (key.Equals(parentIdName, StringComparison.OrdinalIgnoreCase) || key.Contains(parentObjectType.Name, StringComparison.OrdinalIgnoreCase))
@@ -117,8 +109,19 @@ namespace CRUD.API.Services
 
         private object CreateObjectFromFields(string objectType, Dictionary<string, object> fields)
         {
-            var modelName = char.ToUpper(objectType[0]) + objectType.Substring(1);
-            var modelType = Type.GetType($"CRUD.API.Models.{modelName}", true);
+            var modelName =  objectType;
+
+            var availableModels = Assembly.GetExecutingAssembly().GetTypes()
+                .Where(t => t.Namespace == "CRUD.API.Models" && t.IsClass)
+                .Select(t => t.Name)
+                .ToList();
+
+            if (!availableModels.Contains(modelName))
+            {
+                throw new Exception($"Invalid object type '{objectType}'. Available object types are: {string.Join(", ", availableModels)}");
+            }
+
+            var modelType = Type.GetType($"CRUD.API.Models.{modelName}");
             var modelInstance = Activator.CreateInstance(modelType);
 
             foreach (var field in fields)
@@ -132,6 +135,7 @@ namespace CRUD.API.Services
 
             return modelInstance;
         }
+
 
         public async Task<object> GetByIdAsync(string objectType, int id)
         {
@@ -255,8 +259,10 @@ namespace CRUD.API.Services
         {
             var requiredFields = new Dictionary<string, List<string>>
             {
-                { "order", new List<string> { "CustomerId", "OrderDate", "TotalAmount" } },
-                { "orderproduct", new List<string> { "OrderId", "ProductId", "Quantity", "Price" } }
+                { "product", new List<string> { "ProductName", "ProductDescription", "Price" } },
+                { "customer", new List<string> { "FirstName", "LastName", "Email", "Phone", "Address" } },
+                { "order", new List<string> { "CustomerId", "OrderDate", "TotalAmount", "Status" } },
+                { "orderproduct", new List<string> {  "ProductId", "Quantity", "Price" } }
             };
 
             if (requiredFields.ContainsKey(objectType.ToLower()))
