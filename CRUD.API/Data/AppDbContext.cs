@@ -7,11 +7,35 @@ namespace CRUD.API.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<DynamicObject> DynamicObjects { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderProduct> OrderProducts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<DynamicObject>().ToTable("DynamicObjects");
+            modelBuilder.Entity<Product>().ToTable("Product");
+            modelBuilder.Entity<Customer>().ToTable("Customer");
+            modelBuilder.Entity<Order>().ToTable("Order");
+            modelBuilder.Entity<OrderProduct>().ToTable("OrderProduct");
+
+            modelBuilder.Entity<OrderProduct>()
+                .HasOne(op => op.Order)                     
+                .WithMany(o => o.OrderProducts)             
+                .HasForeignKey(op => op.OrderId)            
+                .OnDelete(DeleteBehavior.Cascade);          //cascade delete
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Customer)                    
+                .WithMany(c => c.Orders)                    
+                .HasForeignKey(o => o.CustomerId)           
+                .OnDelete(DeleteBehavior.Restrict);         
+
+            modelBuilder.Entity<OrderProduct>()
+                .HasOne(op => op.Product)                   
+                .WithMany()                                 
+                .HasForeignKey(op => op.ProductId)          
+                .OnDelete(DeleteBehavior.Restrict);         
         }
     }
 }
