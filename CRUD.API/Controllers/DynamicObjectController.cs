@@ -22,7 +22,6 @@ namespace CRUD.API.Controllers
         {
             var result = await _dynamicCrudService.CreateAsync(dto.ObjectType, dto.Fields);
 
-            // Başarılı işlemi kontrol et
             if (result is not null && !(result is string))
             {
                 return Ok(result);
